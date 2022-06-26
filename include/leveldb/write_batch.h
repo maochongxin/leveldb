@@ -30,6 +30,19 @@ namespace leveldb {
 
 class Slice;
 
+/*
+
+
+rep:
+  ---------------------------
+  | sequence | count | data |
+  ---------------------------
+data:
+  --------------------------------------------------------
+  | recordType | key length | key | value length | value |
+  --------------------------------------------------------
+
+*/
 class LEVELDB_EXPORT WriteBatch {
  public:
   class LEVELDB_EXPORT Handler {

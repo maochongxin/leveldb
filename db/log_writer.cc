@@ -43,6 +43,7 @@ Status Writer::AddRecord(const Slice& slice) {
   do {
     const int leftover = kBlockSize - block_offset_;
     assert(leftover >= 0);
+    // 如果剩余的空间小于 Header 的大小, 那么就写到一个新的Block里, 剩余的空间用 x00填充
     if (leftover < kHeaderSize) {
       // Switch to a new block
       if (leftover > 0) {
@@ -60,6 +61,7 @@ Status Writer::AddRecord(const Slice& slice) {
     const size_t fragment_length = (left < avail) ? left : avail;
 
     RecordType type;
+    // 根据剩余的空间大小和要写入的日志大小, 判断日志分段类型
     const bool end = (left == fragment_length);
     if (begin && end) {
       type = kFullType;
@@ -84,6 +86,7 @@ Status Writer::EmitPhysicalRecord(RecordType t, const char* ptr,
   assert(length <= 0xffff);  // Must fit in two bytes
   assert(block_offset_ + kHeaderSize + length <= kBlockSize);
 
+  // [crc(4 bytes)|length(2 bytes)|type(1 byte)]
   // Format the header
   char buf[kHeaderSize];
   buf[4] = static_cast<char>(length & 0xff);

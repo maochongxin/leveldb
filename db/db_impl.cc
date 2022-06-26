@@ -1205,6 +1205,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 
   MutexLock l(&mutex_);
   writers_.push_back(&w);
+  // TODO: ? 这里是未完成状态, 且没有在writers队列头部 就会阻塞
   while (!w.done && &w != writers_.front()) {
     w.cv.Wait();
   }
@@ -1324,6 +1325,7 @@ WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
 // REQUIRES: this thread is currently at the front of the writer queue
 Status DBImpl::MakeRoomForWrite(bool force) {
   mutex_.AssertHeld();
+  // writers不为空
   assert(!writers_.empty());
   bool allow_delay = !force;
   Status s;
@@ -1332,8 +1334,10 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       // Yield previous error
       s = bg_error_;
       break;
+
     } else if (allow_delay && versions_->NumLevelFiles(0) >=
                                   config::kL0_SlowdownWritesTrigger) {
+      // 如果可以delay, 且 level0文件数超过阈值
       // We are getting close to hitting a hard limit on the number of
       // L0 files.  Rather than delaying a single write by several
       // seconds when we hit the hard limit, start delaying each

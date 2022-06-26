@@ -342,6 +342,7 @@ void SkipList<Key, Comparator>::Insert(const Key& key) {
   assert(x == nullptr || !Equal(key, x->key));
 
   int height = RandomHeight();
+  // 顶层的节点直接指向头节点
   if (height > GetMaxHeight()) {
     for (int i = GetMaxHeight(); i < height; i++) {
       prev[i] = head_;
@@ -357,6 +358,7 @@ void SkipList<Key, Comparator>::Insert(const Key& key) {
   }
 
   x = NewNode(key, height);
+  // prev 里下几层level记录了前一个节点的对应level的地址, 大于之前max level的level里是head
   for (int i = 0; i < height; i++) {
     // NoBarrier_SetNext() suffices since we will add a barrier when
     // we publish a pointer to "x" in prev[i].
