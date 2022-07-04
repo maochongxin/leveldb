@@ -74,6 +74,10 @@ void BlockBuilder::Add(const Slice& key, const Slice& value) {
   assert(counter_ <= options_->block_restart_interval);
   assert(buffer_.empty()  // No values yet?
          || options_->comparator->Compare(key, last_key_piece) > 0);
+  // 每个restart区间有 block_restart_interval 个entry,
+  //
+  // counter记录了这个restart有多少个entry;
+  // 如果counter 小于 block_restart_interval, 那么就计算出共同点前缀长度 shared
   size_t shared = 0;
   if (counter_ < options_->block_restart_interval) {
     // See how much sharing to do with previous string
