@@ -1267,13 +1267,16 @@ Compaction* VersionSet::PickCompaction() {
     for (size_t i = 0; i < current_->files_[level].size(); i++) {
       FileMetaData* f = current_->files_[level][i];
       if (compact_pointer_[level].empty() ||
+          // 该文件中最大Key 小于 compact_pointer中该层记录的key
           icmp_.Compare(f->largest.Encode(), compact_pointer_[level]) > 0) {
         c->inputs_[0].push_back(f);
         break;
       }
     }
+    // 上一层输入的文件为空
     if (c->inputs_[0].empty()) {
       // Wrap-around to the beginning of the key space
+      // 将level层的第一个文件传入
       c->inputs_[0].push_back(current_->files_[level][0]);
     }
   } else if (seek_compaction) {
