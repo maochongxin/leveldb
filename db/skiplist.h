@@ -45,7 +45,7 @@ class SkipList {
   // Create a new SkipList object that will use "cmp" for comparing keys,
   // and will allocate memory using "*arena".  Objects allocated in the arena
   // must remain allocated for the lifetime of the skiplist object.
-  explicit SkipList(Comparator cmp, Arena* arena);
+  explicit SkipList(Comparator cmp, Arena* arena, int32_t max_height = 12);
 
   SkipList(const SkipList&) = delete;
   SkipList& operator=(const SkipList&) = delete;
@@ -97,7 +97,7 @@ class SkipList {
   };
 
  private:
-  enum { kMaxHeight = 12 };
+
 
   inline int GetMaxHeight() const {
     return max_height_.load(std::memory_order_relaxed);
@@ -130,6 +130,8 @@ class SkipList {
   Arena* const arena_;  // Arena used for allocations of nodes
 
   Node* const head_;
+
+  const uint32_t kMaxHeight_;
 
   // Modified only by Insert().  Read racily by readers, but stale
   // values are ok.
@@ -241,11 +243,11 @@ int SkipList<Key, Comparator>::RandomHeight() {
   // Increase height with probability 1 in kBranching
   static const unsigned int kBranching = 4;
   int height = 1;
-  while (height < kMaxHeight && rnd_.OneIn(kBranching)) {
+  while (height < kMaxHeight_ && rnd_.OneIn(kBranching)) {
     height++;
   }
   assert(height > 0);
-  assert(height <= kMaxHeight);
+  assert(height <= kMaxHeight_);
   return height;
 }
 
@@ -320,13 +322,15 @@ typename SkipList<Key, Comparator>::Node* SkipList<Key, Comparator>::FindLast()
 }
 
 template <typename Key, class Comparator>
-SkipList<Key, Comparator>::SkipList(Comparator cmp, Arena* arena)
+SkipList<Key, Comparator>::SkipList(Comparator cmp, Arena* arena, int32_t max_height)
     : compare_(cmp),
       arena_(arena),
-      head_(NewNode(0 /* any key will do */, kMaxHeight)),
+      kMaxHeight_(max_height),
+      head_(NewNode(0 /* any key will do */, max_height)),
       max_height_(1),
       rnd_(0xdeadbeef) {
-  for (int i = 0; i < kMaxHeight; i++) {
+  assert(max_height > 0 && kMaxHeight_ == static_cast<uint32_t>(max_height));
+  for (int i = 0; i < kMaxHeight_; i++) {
     head_->SetNext(i, nullptr);
   }
 }
@@ -335,7 +339,7 @@ template <typename Key, class Comparator>
 void SkipList<Key, Comparator>::Insert(const Key& key) {
   // TODO(opt): We can use a barrier-free variant of FindGreaterOrEqual()
   // here since Insert() is externally synchronized.
-  Node* prev[kMaxHeight];
+  Node* prev[kMaxHeight_];
   Node* x = FindGreaterOrEqual(key, prev);
 
   // Our data structure does not allow duplicate insertion
